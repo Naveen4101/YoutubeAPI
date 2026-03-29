@@ -1,13 +1,18 @@
 import requests
 import json
-import os
-from dotenv import load_dotenv
-from datetime import date
 
-load_dotenv(dotenv_path="./.env")
-API_KEY=os.getenv('API_KEY')
-CHANNEL_HANDLE="MrBeast"
+from datetime import date
+from airflow.decorators import task
+from airflow.models import Variable
+#import os
+#from dotenv import load_dotenv
+#load_dotenv(dotenv_path="./.env")
+#API_KEY=os.getenv('API_KEY')
+#CHANNEL_HANDLE="MrBeast"
+API_KEY=Variable.get('API_KEY')
+CHANNEL_HANDLE=Variable.get('CHANNEL_HANDLE')
 max_results=50
+@task
 def get_playlistID():
     try:
         url=f"https://youtube.googleapis.com/youtube/v3/channels?part=contentDetails&forHandle={CHANNEL_HANDLE}&key={API_KEY}"
@@ -21,6 +26,7 @@ def get_playlistID():
         return channel_playlists
     except requests.exceptions.RequestException as e:
         raise e
+@task
 def get_video_id(playlistid):
     try:
         base_url=f"https://youtube.googleapis.com/youtube/v3/playlistItems?part=contentDetails&maxResults={max_results}&playlistId={playlistid}&key={API_KEY}"
@@ -43,6 +49,7 @@ def get_video_id(playlistid):
 
     except requests.exceptions.RequestException as e:
         raise e
+@task
 def extract_video_data(video_ids):
     extracted_data=[]
     def batch_list(video_ids_lst,batch_size):
@@ -74,6 +81,7 @@ def extract_video_data(video_ids):
         return extracted_data
     except requests.exceptions.RequestException as e:
         raise e
+@task
 def save_to_json(video_data):
     file_path=f"./data/Youtube_data_{date.today()}.json"
     with open(file_path,"w",encoding='utf-8') as json_output_file:
